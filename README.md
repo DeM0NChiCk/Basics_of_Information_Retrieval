@@ -24,5 +24,6 @@ Beautiful Soup — это библиотека, которая упрощает 
 
 #### Ссылки для краулера (последняя дата обращения 18.03.2025)
 
+Научно-популярные статьи рубрики: Исследования
 - https://www.trv-science.ru/category/news/
 - https://www.trv-science.ru/category/news/path/2
