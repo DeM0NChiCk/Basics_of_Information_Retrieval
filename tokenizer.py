@@ -91,10 +91,10 @@ def lemmatize_tokens(tokens: list) -> dict:
 
 def process_html_files(input_folder: str):
     """
-    Ищет в папке `input_folder` файлы `page_*.html`,
+    Ищет в папке `input_folder` файлы `unloading_*.html`,
     для каждого файла извлекает токены, леммы и записывает в текстовые файлы.
     """
-    # Ищем все HTML-файлы вида page_*.html
+    # Ищем все HTML-файлы вида unloading_*.html
     html_files = glob.glob(os.path.join(input_folder, "unloading_*.html"))
 
     for html_file in html_files:
@@ -112,7 +112,7 @@ def process_html_files(input_folder: str):
         lemma_dict = lemmatize_tokens(tokens)
 
         # Формируем имена выходных файлов
-        base_name = os.path.splitext(os.path.basename(html_file))[0]  # page_N
+        base_name = os.path.splitext(os.path.basename(html_file))[0]  # unloading_N
         tokens_output_file = f"tokens_{base_name}.txt"
         lemmas_output_file = f"lemmas_{base_name}.txt"
 
