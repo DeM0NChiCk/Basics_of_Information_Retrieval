@@ -1,20 +1,3 @@
-"""
-tfidf_local_web.py
-~~~~~~~~~~~~~~~~~~
-Считает tf‑idf для коллекции локальных html‑страниц, у которых:
-
-* сами html‑файлы лежат в каталоге  links/
-* файлы с терминами            — в каталоге tokens/
-* файлы с леммами              — в каталоге lemmas/
-
-Для каждого html‑документа ищется **одинаковое «базовое имя»** —
-например, для `links/news_01.html` ожидаются файлы
-`tokens/news_01.txt`   и  `lemmas/news_01.txt`.
-
-Выход: в тот же каталог, где лежит html, создаются
-`news_01_terms_tfidf.txt`  и  `news_01_lemmas_tfidf.txt`.
-"""
-
 import argparse
 import math
 import pathlib
