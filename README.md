@@ -137,3 +137,66 @@ nltk.download('punkt')
 
 #### Запуск
 - `python tf_idf.py`
+
+
+### Задание №5
+
+#### Требования 
+
+- Разработать поисковую систему на основе векторного поиска по построенному индексу
+
+#### Входные данные
+
+- папка lemmas_tf_idf, в которой лежат unloading_N_lemmas_tf_idf.txt: cписок лемм с подсчитанным tf-idf
+- папка tokens_tf_idf, в которой лежат unloading_N_tokens_tf_idf.txt: cписок токенов с подсчитанным tf-idf
+
+#### Результат 
+- Для каждого поискового запроса --query, введённого пользователем, программа выводит топ-10 наиболее релевантных документов на основе косинусного сходства с вектором запроса.
+
+Пример ввода для лемм (--mode lemmas и default):
+> `python vector_search.py --query авторы`  
+
+Пример вывода:
+> Результат поиска:
+> 1. unloading_40: 0.0456
+> 2. unloading_44: 0.0431
+> 3. unloading_92: 0.0394
+> 4. unloading_59: 0.0328
+> 5. unloading_82: 0.0326
+> 6. unloading_60: 0.0307
+> 7. unloading_19: 0.0299
+> 8. unloading_14: 0.0268
+> 9. unloading_43: 0.0267
+> 10. unloading_98: 0.0264
+
+Пример ввода для токенов(--mode tokens)
+> `python vector_search.py --query авторы --mode tokens`
+
+Пример вывода:
+> Результат поиска:
+>1. unloading_44: 0.0293
+>2. unloading_65: 0.0238
+>3. unloading_59: 0.0220
+>4. unloading_19: 0.0205
+>5. unloading_49: 0.0201
+>6. unloading_82: 0.0196
+>7. unloading_60: 0.0193
+>8. unloading_40: 0.0186
+>9. unloading_32: 0.0185
+>10. unloading_14: 0.0182
+
+#### Инструменты
+- Python 3.10 (pymorphy не работает на Python 3.12)
+- nltk 3.9.1 - для токенизации и работы со стоп-словами
+- pymorphy2 0.9.1 - морфологический анализатор русского языка, позволяет определять леммы
+
+#### Запуск 
+- Установите необходимые пакеты: `pip install nltk pymorphy2`
+- Скачайте необходимые данные NLTK (стоп-слова, punkt), если ещё не скачивали:
+```python
+import nltk
+nltk.download('stopwords')
+nltk.download('punkt')
+```
+
+
