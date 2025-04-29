@@ -51,7 +51,7 @@ def compute_tfidf(html_dir: pathlib.Path,
 
         # Леммы
         with lemmas_path.open(encoding="utf‑8") as f:
-            for lemma in {line.split(maxsplit=1)[0] for line in f if line.strip()}:
+            for lemma in {line.split(maxsplit=1)[0].rstrip(":") for line in f if line.strip()}:
                 lemma_docs[lemma].add(doc_id)
 
     idf_term  = {t: math.log(N / len(docs)) for t, docs in term_docs.items()}
@@ -72,6 +72,7 @@ def compute_tfidf(html_dir: pathlib.Path,
                 if not line.strip():
                     continue
                 lemma, *lemma_terms = line.split()
+                lemma = lemma.rstrip(":")
                 freq = sum(term_counter[t] for t in lemma_terms)
                 if freq:
                     lemma_counter[lemma] = freq
