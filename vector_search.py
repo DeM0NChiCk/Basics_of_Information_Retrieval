@@ -1,94 +1,117 @@
-import argparse
 import pathlib
+import argparse
 import math
 from collections import defaultdict
-from typing import Dict, List, Tuple
+from typing import List
 
-def load_tfidf_vectors(tfidf_dir: pathlib.Path) -> Tuple[Dict[str, Dict[str, float]], set]:
+import pymorphy2
+morph = pymorphy2.MorphAnalyzer()  # создаём один раз
+
+def lemmatize_query(query: str) -> List[str]:
+    return [morph.parse(word)[0].normal_form for word in query.lower().split()]
+
+
+def load_index(tfidf_dir: pathlib.Path):
     """
-    Загружает TF-IDF-вектора документов.
+    Загружает tf-idf индекс из указанной директории.
     Возвращает:
-      - словарь: {stem: {term: tfidf}}
-      - множество всех термов
+        docs: список имён документов (stem'ов)
+        index: словарь term/lemma -> список (doc_id, tfidf)
     """
-    vectors = {}
-    vocabulary = set()
+    index = defaultdict(list)
+    docs = []
 
-    for path in tfidf_dir.glob("*.txt"):
-        stem = path.stem.replace("_tokens_tf_idf", "").replace("_lemmas_tf_idf", "")
+    for i, path in enumerate(sorted(tfidf_dir.glob("*.txt"))):
+        docs.append(path.stem)
         with path.open(encoding="utf-8") as f:
-            tfidf_vector = {}
             for line in f:
-                term, _, tfidf = line.strip().split()
-                tfidf = float(tfidf)
-                tfidf_vector[term] = tfidf
-                vocabulary.add(term)
-            vectors[stem] = tfidf_vector
+                if not line.strip():
+                    continue
+                term, _, tfidf = line.split()
+                index[term].append((i, float(tfidf)))
 
-    return vectors, vocabulary
+    return docs, index
 
 
-def build_query_vector(query_terms: List[str], doc_vectors: Dict[str, Dict[str, float]]) -> Dict[str, float]:
+def cosine_similarity(query_vec: dict[str, float],
+                      doc_vec: dict[str, float]) -> float:
     """
-    Строит вектор запроса: tf = 1, idf берётся из любого документа, где есть термин.
+    Вычисляет косинусную меру между векторами запроса и документа.
     """
-    query_vector = {}
-    doc_count = len(doc_vectors)
-    df = defaultdict(int)
-
-    for term in query_terms:
-        for vec in doc_vectors.values():
-            if term in vec:
-                df[term] += 1
-
-    for term in query_terms:
-        if df[term] > 0:
-            idf = math.log(doc_count / df[term])
-            query_vector[term] = idf  # tf=1
-
-    return query_vector
-
-
-def cosine_similarity(vec1: Dict[str, float], vec2: Dict[str, float]) -> float:
-    common_terms = set(vec1.keys()) & set(vec2.keys())
-    numerator = sum(vec1[t] * vec2[t] for t in common_terms)
-
-    norm1 = math.sqrt(sum(v ** 2 for v in vec1.values()))
-    norm2 = math.sqrt(sum(v ** 2 for v in vec2.values()))
-    if norm1 == 0 or norm2 == 0:
+    dot = sum(query_vec[t] * doc_vec.get(t, 0) for t in query_vec)
+    norm_query = math.sqrt(sum(v * v for v in query_vec.values()))
+    norm_doc   = math.sqrt(sum(v * v for v in doc_vec.values()))
+    if norm_query == 0 or norm_doc == 0:
         return 0.0
-    return numerator / (norm1 * norm2)
+    return dot / (norm_query * norm_doc)
 
 
-def search(query: str, tfidf_dir: pathlib.Path, use_lemmas: bool = False, top_k: int = 5):
-    vectors, _ = load_tfidf_vectors(tfidf_dir)
-    query_terms = query.lower().split()
-    query_vec = build_query_vector(query_terms, vectors)
+def vectorize_query(query_terms: List[str], index: dict[str, List[tuple[int, float]]]):
+    """
+    Создаёт tf-вектор запроса и строит список затронутых документов.
+    """
+    tf_counter = defaultdict(int)
+    for term in query_terms:
+        tf_counter[term] += 1
 
-    scores = []
-    for stem, vec in vectors.items():
-        score = cosine_similarity(query_vec, vec)
-        if score > 0:
-            scores.append((stem, score))
+    total = sum(tf_counter.values())
+    tf_query = {t: c / total for t, c in tf_counter.items()}
 
+    # Вычисляем вектор документа для всех doc_id, где встречались термины
+    candidate_docs = set()
+    for t in tf_query:
+        if t in index:
+            candidate_docs.update(doc_id for doc_id, _ in index[t])
+
+    return tf_query, candidate_docs
+
+
+def build_doc_vectors(index: dict[str, List[tuple[int, float]]],
+                      candidate_docs: set[int]) -> dict[int, dict[str, float]]:
+    """
+    Строит словарь: doc_id -> tf-idf вектор.
+    """
+    doc_vectors = defaultdict(dict)
+    for term, postings in index.items():
+        for doc_id, tfidf in postings:
+            if doc_id in candidate_docs:
+                doc_vectors[doc_id][term] = tfidf
+    return doc_vectors
+
+
+def search(query: str, docs: List[str], index: dict[str, List[tuple[int, float]]], mode) -> None:
+    """
+    Выполняет поиск по запросу. Печатает топ-10 совпадений.
+    """
+    if mode == "lemmas":
+        query_terms = lemmatize_query(query)
+    else:
+        query_terms = query.lower().split()
+    query_vec, candidate_docs = vectorize_query(query_terms, index)
+    doc_vectors = build_doc_vectors(index, candidate_docs)
+
+    scores = [(doc_id, cosine_similarity(query_vec, doc_vec))
+              for doc_id, doc_vec in doc_vectors.items()]
     scores.sort(key=lambda x: x[1], reverse=True)
 
-    print(f"\n🔍 Top {top_k} результатов по запросу: '{query}'")
-    for rank, (stem, score) in enumerate(scores[:top_k], start=1):
-        print(f"{rank}. {stem} — score: {score:.4f}")
+    print("Топ совпадений:")
+    for doc_id, score in scores[:10]:
+        print(f"{docs[doc_id]}: {score:.4f}")
 
 
+# ---------- CLI ----------------------------------------------------------------------
 def main():
-    parser = argparse.ArgumentParser(description="Поиск по TF-IDF индексам")
-    parser.add_argument("query", help="Поисковый запрос")
-    parser.add_argument("--tfidf-dir", default="tokens_tf_idf", type=pathlib.Path,
-                        help="Каталог с TF-IDF файлами")
-    parser.add_argument("--use-lemmas", action="store_true", help="Использовать леммы вместо терминов")
-    parser.add_argument("--top-k", type=int, default=10, help="Сколько результатов выводить")
+    parser = argparse.ArgumentParser(description="Поиск по tf-idf индексу")
+    parser.add_argument("--query", required=True,
+                        help="Поисковый запрос (разделённый пробелами)")
+    parser.add_argument("--mode", choices=["tokens", "lemmas"], default="lemmas",
+                        help="Режим поиска: tokens или lemmas (по умолчанию lemmas)")
     args = parser.parse_args()
 
-    tfidf_dir = pathlib.Path("lemmas_tf_idf" if args.use_lemmas else "tokens_tf_idf")
-    search(args.query, tfidf_dir=tfidf_dir, top_k=args.top_k)
+    tfidf_dir = pathlib.Path("lemmas_tf_idf" if args.mode == "lemmas" else "tokens_tf_idf")
+
+    docs, index = load_index(tfidf_dir)
+    search(args.query, docs, index, args.mode)
 
 
 if __name__ == "__main__":
