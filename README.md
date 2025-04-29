@@ -155,7 +155,7 @@ nltk.download('punkt')
 > Формат вывода: 1. <имя_документа_N>: <оценка_релевантности>
 
 Пример ввода для лемм (--mode lemmas и default):
-`python vector_search.py --query авторы`  
+> `python vector_search.py --query авторы`  
 
 Пример вывода:
 > Результат поиска:
@@ -171,7 +171,7 @@ nltk.download('punkt')
 > 10. unloading_98: 0.0264
 
 Пример ввода для токенов(--mode tokens)
-`python vector_search.py --query авторы --mode tokens`
+> `python vector_search.py --query авторы --mode tokens`
 
 Пример вывода:
 > Результат поиска:
