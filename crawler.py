@@ -104,7 +104,7 @@ def main():
     # Запись первых 100 уникальных ссылок в файл
     with open('index.txt', 'w', encoding='utf-8') as f:
         for i, link in enumerate(unique_links[:100], 1):
-            f.write(f"{i} - {link}\n")
+            f.write(f"unloading_{i} - {link}\n")
 
     print("\n" + "=" * 50)
     print(f"Всего найдено ссылок: {len(all_links)}")
