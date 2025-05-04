@@ -216,6 +216,8 @@ nltk.download('punkt')
 #### Результат
 - WEB интерфейс для векторного поиска по html файлам с ранжированием с помощью PageRank
 
+<img width="1470" alt="image" src="https://github.com/user-attachments/assets/5c093fa5-2b59-4763-a148-48517e70df20" />
+
 #### Инструменты
 - Python 3.10
 - Flask 3.1.0
